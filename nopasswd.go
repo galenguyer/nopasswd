@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"strings"
 
 	"golang.org/x/crypto/argon2"
@@ -19,6 +21,7 @@ type PasswordConfig struct {
 }
 
 func main() {
+	reader := bufio.NewReader(os.Stdin)
 	config := &PasswordConfig{
 		time:    1,
 		memory:  64 * 1024,
@@ -26,10 +29,14 @@ func main() {
 		keyLen:  32,
 	}
 
-	_, err := GeneratePassword(config, "password123")
+	fmt.Print("-> Enter Password: ")
+	text, _ := reader.ReadString('\n')
+
+	argonpw, err := GeneratePassword(config, text)
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(argonpw)
 }
 
 // GeneratePassword is used to generate a new password hash for storing and
