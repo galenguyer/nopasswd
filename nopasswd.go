@@ -41,29 +41,21 @@ func main() {
 		panic(err)
 	}
 
-	text := []byte("Mandalorian is currently the best DisneyPlus show")
+	text := "Mandalorian is currently the best DisneyPlus show"
 	key := argonHash
 
 	// Encryption
-	cphr, err := aes.NewCipher(key)
-	if err != nil {
-		fmt.Println(err)
-	}
-	gcm, err := cipher.NewGCM(cphr)
-	if err != nil {
-		fmt.Println(err)
-	}
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, text, nil)))
-	err = ioutil.WriteFile("vault.data", gcm.Seal(nonce, nonce, text, nil), 0777)
+	encrypted, _ := AESEncrypt(argonHash, text)
+	err = ioutil.WriteFile("vault.data", []byte(encrypted), 0777)
 	if err != nil {
 		fmt.Println(err)
 	}
 	// Decryption
-	ciphertext, err := ioutil.ReadFile("vault.data")
+	rawBytes, err := ioutil.ReadFile("vault.data")
+	if err != nil {
+		fmt.Println(err)
+	}
+	ciphertext, err := base64.StdEncoding.DecodeString(string(rawBytes[:]))
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -86,6 +78,27 @@ func main() {
 	}
 	fmt.Println("After decrypting:")
 	fmt.Println(string(plaintext))
+}
+
+// AESEncrypt is used to encrypt a string with a given key
+func AESEncrypt(key []byte, data string) (string, error) {
+	cphr, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
+	gcm, err := cipher.NewGCM(cphr)
+	if err != nil {
+		return "", err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, []byte(data), nil)), nil
+}
+
+func AESDecrypt(key []byte, data []byte) {
+
 }
 
 // GeneratePassword is used to generate a new password hash for storing and
