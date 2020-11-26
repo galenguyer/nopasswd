@@ -2,10 +2,14 @@ package main
 
 import (
 	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -30,22 +34,67 @@ func main() {
 	}
 
 	fmt.Print("-> Enter Password: ")
-	text, _ := reader.ReadString('\n')
+	pwinput, _ := reader.ReadString('\n')
 
-	argonpw, err := GeneratePassword(config, text)
+	_, argonHash, err := GeneratePassword(config, pwinput)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(argonpw)
+
+	text := []byte("Mandalorian is currently the best DisneyPlus show")
+	key := argonHash
+
+	// Encryption
+	cphr, err := aes.NewCipher(key)
+	if err != nil {
+		fmt.Println(err)
+	}
+	gcm, err := cipher.NewGCM(cphr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, text, nil)))
+	err = ioutil.WriteFile("vault.data", gcm.Seal(nonce, nonce, text, nil), 0777)
+	if err != nil {
+		fmt.Println(err)
+	}
+	// Decryption
+	ciphertext, err := ioutil.ReadFile("vault.data")
+	if err != nil {
+		fmt.Println(err)
+	}
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		fmt.Println(err)
+	}
+	gcmDecrypt, err := cipher.NewGCM(c)
+	if err != nil {
+		fmt.Println(err)
+	}
+	nonceSize := gcmDecrypt.NonceSize()
+	if len(ciphertext) < nonceSize {
+		fmt.Println(err)
+	}
+	nonce, encryptedMessage := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := gcmDecrypt.Open(nil, nonce, encryptedMessage, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("After decrypting:")
+	fmt.Println(string(plaintext))
 }
 
 // GeneratePassword is used to generate a new password hash for storing and
 // comparing at a later date.
-func GeneratePassword(c *PasswordConfig, password string) (string, error) {
+func GeneratePassword(c *PasswordConfig, password string) (string, []byte, error) {
 	// Generate a Salt
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
-		return "", err
+		return "", []byte(""), err
 	}
 
 	hash := argon2.IDKey([]byte(password), salt, c.time, c.memory, c.threads, c.keyLen)
@@ -56,7 +105,7 @@ func GeneratePassword(c *PasswordConfig, password string) (string, error) {
 
 	format := "$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s"
 	full := fmt.Sprintf(format, argon2.Version, c.memory, c.time, c.threads, b64Salt, b64Hash)
-	return full, nil
+	return full, hash, nil
 }
 
 // ComparePassword is used to compare a user-inputted password to a hash to see

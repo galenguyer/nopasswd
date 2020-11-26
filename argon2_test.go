@@ -13,14 +13,17 @@ func TestGeneratePassword(t *testing.T) {
 		keyLen:  32,
 	}
 
-	hash, err := GeneratePassword(config, "password123")
+	full, hash, err := GeneratePassword(config, "password123")
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(hash) != 97 {
+	if len(full) != 97 {
 		t.Errorf("Generated password length incorrect")
 	} else {
 		t.Logf("Generated password length correct")
+	}
+	if len(hash) != 32 {
+		t.Errorf("Generated hash length incorrect")
 	}
 }
 
