@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+// PasswordConfig is used to configure Argon2
 type PasswordConfig struct {
 	time    uint32
 	memory  uint32
@@ -18,7 +19,6 @@ type PasswordConfig struct {
 }
 
 func main() {
-
 	config := &PasswordConfig{
 		time:    1,
 		memory:  64 * 1024,
@@ -26,27 +26,15 @@ func main() {
 		keyLen:  32,
 	}
 
-	// Example 1: Generating a Password Hash
-	hash, err := GeneratePassword(config, "password123")
+	_, err := GeneratePassword(config, "password123")
 	if err != nil {
-		// handle error
 		panic(err)
-	}
-	fmt.Println(hash)
-
-	// Example 2: Check If Password if Valid (it is)
-	match, err := ComparePassword("password123", hash)
-	if !match || err != nil {
-		fmt.Println("Password Invalid")
-	} else {
-		fmt.Println("Password Valid")
 	}
 }
 
 // GeneratePassword is used to generate a new password hash for storing and
 // comparing at a later date.
 func GeneratePassword(c *PasswordConfig, password string) (string, error) {
-
 	// Generate a Salt
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
@@ -67,7 +55,6 @@ func GeneratePassword(c *PasswordConfig, password string) (string, error) {
 // ComparePassword is used to compare a user-inputted password to a hash to see
 // if the password matches or not.
 func ComparePassword(password, hash string) (bool, error) {
-
 	parts := strings.Split(hash, "$")
 
 	c := &PasswordConfig{}
