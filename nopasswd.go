@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// Example 1: Generating a Password Hash
-	hash, err := GeneratePassword(config, "golangcode.com_pass")
+	hash, err := GeneratePassword(config, "password123")
 	if err != nil {
 		// handle error
 		panic(err)
@@ -35,7 +35,7 @@ func main() {
 	fmt.Println(hash)
 
 	// Example 2: Check If Password if Valid (it is)
-	match, err := ComparePassword("golangcode.com_pass", hash)
+	match, err := ComparePassword("password123", hash)
 	if !match || err != nil {
 		fmt.Println("Password Invalid")
 	} else {
